@@ -152,7 +152,7 @@ grid-template-columns:1fr;
 <div class="container">
 
 <div class="header">
-<h1>🎫 Customer Support Dashboard Pro</h1>
+<h1>🎫 Wow Cases Overview By Uniserve</h1>
 </div>
 
 <div class="stats">
@@ -183,14 +183,7 @@ grid-template-columns:1fr;
 
 <div class="card">
 
-<h2>Customer Details</h2>
-
-<textarea id="rawData"
-placeholder="Paste customer details here..."></textarea>
-
-<button class="primary" onclick="autoFill()">
-Auto Fill
-</button>
+<h2>Customer Case</h2>
 
 <div class="row">
 
@@ -219,17 +212,20 @@ Auto Fill
 <input id="outlet">
 </div>
 
-<div>
-<label>Complain was</label>
-<input id="complain">
-</div>
+<label>Customer Concern</label>
+
+<textarea
+id="customerConcern"
+placeholder="Write customer concern here...">
+</textarea>
 
 </div>
+
+<label>Customer Concern</label>
 
 <label>Issue Type</label>
 
-<select id="reason">
-
+<select id="issueType">
 <option>Missing Item</option>
 <option>Cancel Request</option>
 <option>Wrong Order</option>
@@ -245,15 +241,6 @@ Auto Fill
 <option>Outlet Complaint</option>
 <option>Delivery Partner Issue</option>
 <option>Other</option>
-
-</select>
-
-<label>Priority</label>
-
-<select id="priority">
-<option>High</option>
-<option>Medium</option>
-<option>Low</option>
 </select>
 
 <button class="primary" onclick="generateCase()">
@@ -290,49 +277,24 @@ Recent Cases
 
 <script>
 
-function autoFill(){
-
-let lines=document
-.getElementById("rawData")
-.value
-.split(/\r?\n/)
-.filter(Boolean);
-
-document.getElementById("name").value = lines[0] || "";
-document.getElementById("phone").value = lines[1] || "";
-document.getElementById("orderId").value = lines[2] || "";
-document.getElementById("orderPlace").value = lines[3] || "";
-document.getElementById("outlet").value = lines[4] || "";
-document.getElementById("complain").value = lines.slice(5).join(" ");
-
-}
-
 function generateCase(){
 
-let note=
+let note =
 `Name : ${document.getElementById("name").value}
 Phone Number : ${document.getElementById("phone").value}
 Order ID : ${document.getElementById("orderId").value}
 Order Place : ${document.getElementById("orderPlace").value}
 Outlet : ${document.getElementById("outlet").value}
+Issue Type :
+${document.getElementById("issueType").value} ${document.getElementById("customerConcern").value}`;
 
-Issue Type : ${document.getElementById("reason").value}
-Priority : ${document.getElementById("priority").value}
 
-Complain :
-${document.getElementById("complain").value}
-
-Action Taken :
-Customer was assisted and informed regarding the next steps.
-
-Status :
-Pending Review`;
 
 document.getElementById("output").innerText = note;
 
 saveHistory();
 }
-
+  
 async function copyCase(){
 
 await navigator.clipboard.writeText(
@@ -362,7 +324,9 @@ localStorage.getItem("caseHistory")
 
 history.unshift({
 name: document.getElementById("name").value,
-issue: document.getElementById("reason").value,
+order: document.getElementById("orderId").value,
+concern: document.getElementById("customerConcern").value,
+issue: document.getElementById("issueType").value,
 date: new Date().toLocaleString()
 });
 
@@ -380,25 +344,49 @@ updateStats();
 
 function renderHistory(){
 
-let history=
-JSON.parse(
-localStorage.getItem("caseHistory")
-|| "[]"
+let history = JSON.parse(
+localStorage.getItem("caseHistory") || "[]"
 );
 
-document.getElementById(
-"history"
-).innerHTML=
-
-history.map(item=>`
+document.getElementById("history").innerHTML =
+history.map((item,index)=>`
 <div class="history-item">
-<b>${item.name}</b><br>
+${item.name}<br>
+${item.order}<br>
+${item.concern}<br>
 ${item.issue}<br>
 <small>${item.date}</small>
+<br><br>
+
+<button
+class="danger"
+onclick="deleteCase(${index})">
+Delete
+</button>
+
 </div>
 `).join("");
 
 }
+
+function deleteCase(index){
+
+let history = JSON.parse(
+localStorage.getItem("caseHistory") || "[]"
+);
+
+history.splice(index,1);
+
+localStorage.setItem(
+"caseHistory",
+JSON.stringify(history)
+);
+
+renderHistory();
+updateStats();
+
+}
+
 
 function updateStats(){
 
