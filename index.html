@@ -338,6 +338,7 @@ document.getElementById("output").innerText =
 function saveHistory(){
 
 let key = getAgentKey();
+let agent = document.getElementById("agentSelect").value;
 
 let history = JSON.parse(localStorage.getItem(key) || "[]");
 
@@ -346,6 +347,7 @@ name: document.getElementById("name").value,
 order: document.getElementById("orderId").value,
 concern: document.getElementById("customerConcern").value,
 issue: document.getElementById("issueType").value,
+agent: agent,   // ✅ ADD THIS LINE
 date: new Date().toLocaleString()
 });
 
@@ -399,8 +401,11 @@ container.innerHTML += `
 <b>Concern:</b> ${item.concern || ""}<br>
 <b>Issue:</b> ${item.issue || ""}<br>
 <small>${item.date || ""}</small>
-
-<br><br>
+<br>
+<b>Handled By:</b> <span 
+style="color:#3b82f6;font-weight:600;">
+${item.agent || "Unknown"}
+</span><br>
 
 <button class="danger" onclick="deleteCase(${index})">
 Delete
