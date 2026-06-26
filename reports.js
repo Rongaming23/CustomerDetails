@@ -1,94 +1,122 @@
+
+// ===============================
+// FIRESTORE EXPORT + ANALYTICS
+// ===============================
+
 import { db } from "./firebase.js";
 
 import {
-collection,
-getDocs
+    collection,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-window.exportCSV = async function(){
 
-const snapshot = await getDocs(
-collection(db,"cases")
-);
+// ===============================
+// CSV EXPORT (FIXED + SAFE)
+// ===============================
 
-let csv =
-"Ticket ID,Name,Phone,Order ID,Order Date,Outlet,Issue,Concern,Delivery Partner,Status,Agent,Created At\n";
+window.exportCSV = async function () {
 
-snapshot.forEach(doc=>{
+    try {
 
-const d = doc.data();
+        const snapshot = await getDocs(collection(db, "cases"));
 
-csv += `"${d.ticketId||""}",`;
-csv += `"${d.name||""}",`;
-csv += `"${d.phone||""}",`;
-csv += `"${d.orderId||""}",`;
-csv += `"${d.orderDate||""}",`;
-csv += `"${d.outlet||""}",`;
-csv += `"${d.issue||""}",`;
-csv += `"${d.concern||""}",`;
-csv += `"${d.deliveryPartner||""}",`;
-csv += `"${d.status||""}",`;
-csv += `"${d.agent||""}",`;
-csv += `"${d.createdAt||""}"\n`;
+        let csv =
+`Ticket ID,Name,Phone,Order ID,Order Date,Outlet,Issue,Concern,Delivery Partner,Status,Agent,Created At\n`;
 
-});
+        snapshot.forEach(docSnap => {
 
-const blob = new Blob([csv],{
-type:"text/csv;charset=utf-8;"
-});
+            const d = docSnap.data();
 
-const url =
-window.URL.createObjectURL(blob);
+            const row = [
+                d.ticketId || "",
+                d.name || "",
+                d.phone || "",
+                d.orderId || "",
+                d.orderDate || "",
+                d.outlet || "",
+                d.issue || "",
+                (d.concern || "").replace(/"/g, '""'),
+                d.deliveryPartner || "",
+                d.status || "",
+                d.agent || "",
+                d.createdAt || ""
+            ];
 
-const a =
-document.createElement("a");
+            csv += row.map(v => `"${v}"`).join(",") + "\n";
+        });
 
-a.href = url;
-a.download =
-"CRM_Report.csv";
+        const blob = new Blob([csv], {
+            type: "text/csv;charset=utf-8;"
+        });
 
-a.click();
+        const url = URL.createObjectURL(blob);
 
-window.URL.revokeObjectURL(url);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "CRM_Report.csv";
 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        console.error("CSV Export Error:", err);
+        alert("Failed to export CSV");
+    }
 };
 
-window.agentPerformance = async function(){
 
-const snapshot = await getDocs(
-collection(db,"cases")
-);
+// ===============================
+// AGENT PERFORMANCE (FIXED)
+// ===============================
 
-let stats = {};
+window.agentPerformance = async function () {
 
-snapshot.forEach(doc=>{
+    try {
 
-const d = doc.data();
+        const snapshot = await getDocs(collection(db, "cases"));
 
-if(!stats[d.agent]){
+        let stats = {};
 
-stats[d.agent] = 0;
+        snapshot.forEach(docSnap => {
 
-}
+            const d = docSnap.data();
 
-stats[d.agent]++;
+            const agent = d.agent || "Unassigned";
 
-});
+            stats[agent] = (stats[agent] || 0) + 1;
+        });
 
-let html = "<h3>Agent Performance</h3><br>";
+        let html = "<h3>👤 Agent Performance</h3><br>";
 
-Object.keys(stats).forEach(agent=>{
+        const agents = Object.keys(stats);
 
-html += `
-<div class="card" style="margin-bottom:10px;">
-<b>${agent}</b><br>
-Cases Handled : ${stats[agent]}
-</div>
-`;
+        if (agents.length === 0) {
+            html += "<p>No agent data found</p>";
+        } else {
 
-});
+            agents.forEach(agent => {
 
-document.getElementById("reportArea")
-.innerHTML = html;
+                html += `
+                <div class="card" style="margin-bottom:10px;">
+                    <b>${agent}</b><br>
+                    Cases Handled: ${stats[agent]}
+                </div>
+                `;
+            });
+        }
 
+        const area = document.getElementById("reportArea");
+
+        if (area) {
+            area.innerHTML = html;
+        }
+
+    } catch (err) {
+        console.error("Agent Report Error:", err);
+        alert("Failed to load agent performance");
+    }
 };
