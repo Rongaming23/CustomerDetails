@@ -1,6 +1,6 @@
+
 // ===============================
-// UNISERVE CRM
-// auth.js
+// UNISERVE CRM - AUTH MODULE (FIXED)
 // ===============================
 
 import { auth } from "./firebase.js";
@@ -13,9 +13,10 @@ import {
     browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// -------------------------------
+
+// ===============================
 // LOGIN
-// -------------------------------
+// ===============================
 
 window.login = async function () {
 
@@ -33,10 +34,10 @@ window.login = async function () {
 
     try {
 
-        // Keep user logged in
+        // 🔥 IMPORTANT: set persistence FIRST (safe fix)
         await setPersistence(auth, browserLocalPersistence);
 
-        await signInWithEmailAndPassword(
+        const result = await signInWithEmailAndPassword(
             auth,
             email,
             password
@@ -46,114 +47,86 @@ window.login = async function () {
         msg.innerHTML = "Login Successful...";
 
         setTimeout(() => {
-
             window.location.href = "index.html";
-
-        }, 800);
+        }, 600);
 
     } catch (error) {
 
-        switch (error.code) {
+        console.error(error);
 
-            case "auth/invalid-email":
-                msg.innerHTML = "Invalid email address.";
-                break;
+        const map = {
+            "auth/invalid-email": "Invalid email address.",
+            "auth/user-not-found": "User not found.",
+            "auth/wrong-password": "Incorrect password.",
+            "auth/invalid-credential": "Invalid email or password."
+        };
 
-            case "auth/user-not-found":
-                msg.innerHTML = "User not found.";
-                break;
-
-            case "auth/wrong-password":
-                msg.innerHTML = "Incorrect password.";
-                break;
-
-            case "auth/invalid-credential":
-                msg.innerHTML = "Invalid email or password.";
-                break;
-
-            default:
-                msg.innerHTML = error.message;
-
-        }
-
+        msg.innerHTML = map[error.code] || error.message;
     }
-
 };
 
-// -------------------------------
+
+// ===============================
 // LOGOUT
-// -------------------------------
+// ===============================
 
 window.logout = async function () {
 
     try {
-
         await signOut(auth);
-
         window.location.href = "login.html";
 
     } catch (error) {
-
         alert(error.message);
-
     }
-
 };
 
-// -------------------------------
-// AUTH CHECK
-// -------------------------------
+
+// ===============================
+// AUTH STATE (FIXED SAFE FLOW)
+// ===============================
+
+let redirecting = false;
 
 onAuthStateChanged(auth, (user) => {
 
-    const page = window.location.pathname
-        .split("/")
-        .pop();
+    const page = window.location.pathname.split("/").pop();
 
-    // User is NOT logged in
+    // ===========================
+    // NOT LOGGED IN
+    // ===========================
     if (!user) {
 
-        if (page !== "login.html") {
-
+        if (page !== "login.html" && !redirecting) {
+            redirecting = true;
             window.location.href = "login.html";
-
         }
 
         return;
-
     }
 
-    // User IS logged in
-    if (page === "login.html") {
-
+    // ===========================
+    // LOGGED IN
+    // ===========================
+    if (page === "login.html" && !redirecting) {
+        redirecting = true;
         window.location.href = "index.html";
-
     }
-
 });
 
-// -------------------------------
-// USER DETAILS
-// -------------------------------
+
+// ===============================
+// SAFE USER HELPERS
+// ===============================
 
 window.currentUser = function () {
-
-    return auth.currentUser;
-
+    return auth.currentUser || null;
 };
 
 window.currentEmail = function () {
-
-    return auth.currentUser
-        ? auth.currentUser.email
-        : "";
-
+    return auth.currentUser?.email || "";
 };
 
 window.isAdmin = function () {
-
-    if (!auth.currentUser) return false;
-
-    return auth.currentUser.email === "sankudas@crm.com";
-
+    return auth.currentUser?.email === "sankudas@crm.com";
 };
